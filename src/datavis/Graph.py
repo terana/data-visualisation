@@ -1,7 +1,7 @@
 import pygraphml
 import networkx as nx
 import matplotlib.pyplot as plt
-from Node import Node
+from datavis.Node import Node
 
 
 class Graph:
