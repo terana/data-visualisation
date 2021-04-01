@@ -1,12 +1,12 @@
-import pygraphml
 import math
 import networkx as nx
 import matplotlib.pyplot as plt
 
 from Node import Node
+from Graph import Graph
 
-parser = pygraphml.GraphMLParser()
-g = parser.parse("test_trees/tree-42n.xml")
+g = Graph()
+g.load_graphml("test_trees/tree-42n.xml")
 
 
 def dfs(node, depth, num):
@@ -89,32 +89,8 @@ def layered_tree_draw(node):
     return contour
 
 
-n10 = Node("n10")
-n9 = Node("n9")
-n8 = Node("n8")
-n7 = Node("n7", n9, n10)
-n6 = Node("n6")
-n5 = Node("n5")
-n4 = Node("n4", n5, n6)
-n3 = Node("n3", right=n4)
-n2 = Node("n2", n7, n8)
-n1 = Node("n1", n3)
-n0 = Node("n0", n1, n2)
-
-dfs(n0, 0, -1)
-layered_tree_draw(n0)
-
-n0.dump()
-n1.dump()
-n2.dump()
-n3.dump()
-n4.dump()
-n5.dump()
-n6.dump()
-n7.dump()
-n8.dump()
-n9.dump()
-n10.dump()
+dfs(g.root, 0, -1)
+layered_tree_draw(g.root)
 
 
 def add_node(g, n):
@@ -130,13 +106,7 @@ def add_node(g, n):
 
 
 G = nx.DiGraph()
-add_node(G, n0)
+add_node(G, g.root)
 
-# G.add_node("n0", pos=(0, 0))
-# G.add_node("n1", pos=(-50, -50))
-# G.add_node("n2", pos=(50, -50))
-#
-# G.add_edge("n0", "n1")
-# G.add_edge("n0", "n2")
 nx.draw(G, nx.get_node_attributes(G, 'pos'), with_labels=False, node_size=15)
 plt.show()
