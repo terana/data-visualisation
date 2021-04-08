@@ -1,10 +1,10 @@
 import pygraphml
 import networkx as nx
 import matplotlib.pyplot as plt
-from datavis.Node import Node
+from datavis.BiNode import BiNode
 
 
-class Graph:
+class BiTree:
     def __init__(self, root=None):
         self.root = root
 
@@ -16,7 +16,7 @@ class Graph:
         # Searching for the root
         for node in g.nodes():
             if len(node.parent()) == 0:
-                self.root = Node(id=node.id)
+                self.root = BiNode(id=node.id)
                 g.set_root(node)
                 break
 
@@ -29,11 +29,11 @@ class Graph:
             raise ValueError("Expect a binary tree.")
 
         if len(children) > 0:
-            node.left = Node(id=children[0].id)
+            node.left = BiNode(id=children[0].id)
             self._build_graph(children[0], node.left)
 
         if len(children) > 1:
-            node.right = Node(id=children[1].id)
+            node.right = BiNode(id=children[1].id)
             self._build_graph(children[1], node.right)
 
     def show(self, with_labels=False):

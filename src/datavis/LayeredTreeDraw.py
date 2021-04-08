@@ -2,9 +2,9 @@ import math
 
 
 class LayeredTreeDraw:
-    def __init__(self, graph):
-        self.graph = graph
-        self.root = graph.root
+    def __init__(self, bitree):
+        self.bitree = bitree
+        self.root = bitree.root
         self.contour = []
 
     def set_coordinates(self):
@@ -12,7 +12,7 @@ class LayeredTreeDraw:
         self.contour = self._layered_tree_draw(self.root)
 
     def show(self):
-        self.graph.show()
+        self.bitree.show()
 
     def _set_coordinates_with_dfs(self, node, depth, num):
         if node is None:
