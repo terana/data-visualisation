@@ -4,7 +4,7 @@ from datavis.LayeredTreeDraw import LayeredTreeDraw
 
 def test_layered_tree_draw_sanity():
     g = BiTree()
-    g.load_graphml("test_files/bitrees/tree-828n.xml")
+    g.load_graphml("samples/bitrees/tree-828n.xml")
 
     ltd = LayeredTreeDraw(g)
     ltd.set_coordinates()
