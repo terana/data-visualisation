@@ -6,19 +6,24 @@ class CoffmanGraham:
         self.width = width
         self.layers = []
 
-    def calculate(self):
+    def calculate_layers(self, with_dummy_vertices=False):
         self._sort_nodes()
         self._set_layers()
+        if with_dummy_vertices:
+            self._add_dummy_vertices()
 
     def damp_layers(self):
         max_width = 0
+        max_width_with_dummy = 0
         for layer in self.layers:
             node_ids = [node.id for node in layer]
             print(" ".join(node_ids))
-            max_width = max(max_width, len(node_ids))
+            max_width_with_dummy = max(max_width_with_dummy, len(node_ids))
+            max_width = max(max_width, len([n for n in layer if not n.dummy]))
 
         print(f"Total layers: {len(self.layers)}")
-        print(f"Max width: {max_width}")
+        print(f"Max width without dummy vertices: {max_width}")
+        print(f"Max width with dummy vertices: {max_width_with_dummy}")
 
     def _init_order(self):
         for node in self.graph.nodes():
@@ -82,7 +87,7 @@ class CoffmanGraham:
 
             if not (len(curr_layer_nodes) < self.width and self._no_children_in_list(max_label_node, curr_layer_nodes)):
                 curr_layer += 1
-                self.layers.append(curr_layer_nodes)
+                self.layers.insert(0, curr_layer_nodes)
                 curr_layer_nodes = []
 
             curr_layer_nodes.append(max_label_node)
@@ -90,4 +95,22 @@ class CoffmanGraham:
             unvisited.remove(max_label_node)
             visited.append(max_label_node)
 
-        self.layers.append(curr_layer_nodes)
+        self.layers.insert(0, curr_layer_nodes)
+
+    def _add_dummy_vertices(self):
+        n_dummies = 0
+        for layer in self.layers:
+            for n in layer:
+                n.dummy = False
+                for p in n.parent():
+                    if p.y - n.y > 1:
+                        prev = p
+                        for y in range(p.y - 1, n.y, -1):
+                            d = self.graph.add_node(id=f"d{n_dummies}")
+                            n_dummies += 1
+                            self.graph.add_edge(prev, d)
+                            prev = d
+                            d.dummy = True
+                            d.y = y
+                            self.layers[-y - 1].append(d)
+                        self.graph.add_edge(prev, n)
