@@ -2,29 +2,19 @@ import pygraphml
 import networkx as nx
 import matplotlib.pyplot as plt
 
-from datavis.CoffmanGraham import CoffmanGraham
 from datavis.CrossingsMinimisation import CrossingsMinimisation
+from datavis.DummyVerticesMinimisation import DummyVerticesMinimisation
 
 
-def test_coffman_graham_sanity():
+def test_dummy_vertices_min_and_crossings_min():
     parser = pygraphml.GraphMLParser()
     g = parser.parse("samples/dags/dag_13n.xml")
 
-    cg = CoffmanGraham(g, width=3)
-    cg.calculate_layers()
-    cg.damp_layers()
+    dvm = DummyVerticesMinimisation(g)
+    dvm.calculate_layers()
+    dvm.dump_layers()
 
-
-def test_coffman_graham_and_crossings_min():
-    parser = pygraphml.GraphMLParser()
-    g = parser.parse("samples/dags/dag_13n.xml")
-
-    g.show()
-
-    cg = CoffmanGraham(g, width=3)
-    cg.calculate_layers(with_dummy_vertices=True)
-
-    cm = CrossingsMinimisation(cg.layers)
+    cm = CrossingsMinimisation(dvm.layers)
     cm.calculate()
 
     G = nx.DiGraph()

@@ -25,9 +25,10 @@ class CoffmanGraham:
         print(f"Max width without dummy vertices: {max_width}")
         print(f"Max width with dummy vertices: {max_width_with_dummy}")
 
-    def _init_order(self):
+    def _init_nodes(self):
         for node in self.graph.nodes():
             node["label"] = self.lexicographical_inf
+            node.dummy = False
 
     @staticmethod
     def _get_input(node):
@@ -38,7 +39,7 @@ class CoffmanGraham:
         return sorted(input, reverse=True)
 
     def _sort_nodes(self):
-        self._init_order()
+        self._init_nodes()
 
         unvisited = self.graph.nodes()[:]
         next = 1
@@ -112,5 +113,7 @@ class CoffmanGraham:
                             prev = d
                             d.dummy = True
                             d.y = y
+                            # layer starts from 0, y starts from 0
                             self.layers[-y - 1].append(d)
                         self.graph.add_edge(prev, n)
+

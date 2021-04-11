@@ -13,12 +13,14 @@ class CrossingsMinimisation:
         self._place_nodes(method=self.MEDIAN)
 
         max_iterations = 100
+        crossings = 0
         for i in range(max_iterations):
+            optimised, crossings = self._local_optimisation()
             if i % 10 == 0:
-                print(f"Optimisation iteration {i}")
-            if not self._local_optimisation():
-                # Nothing to optimise
+                print(f"Optimisation iteration {i}, total crossings: {crossings}")
+            if not optimised:
                 break
+        print(f"Final crossings: {crossings}")
 
     @staticmethod
     def _init_layer(layer):
@@ -109,9 +111,11 @@ class CrossingsMinimisation:
         self.layers = layers
 
         optimised = False
+        total_crossings = 0
 
         for l, layer in enumerate(self.layers[1:-1]):
             crossings = self._calculate_crossings(layer)
+            total_crossings += crossings
             if crossings == 0:
                 continue
             for i, ni in enumerate(layer):
@@ -136,4 +140,4 @@ class CrossingsMinimisation:
                         crossings = 0
                         optimised = True
                         break
-        return optimised
+        return optimised, crossings
