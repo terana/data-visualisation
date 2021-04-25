@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from dataclasses import dataclass
 from typing import List
 
@@ -8,10 +10,10 @@ class Point:
     y: int
     id: int = None
 
-    def __add__(self, that):
+    def __add__(self, that: Point):
         return Point(that.x + self.x, that.y + self.y)
 
-    def __sub__(self, that):
+    def __sub__(self, that: Point):
         return Point(self.x - that.x, self.y - that.y)
 
     def __neg__(self):
@@ -27,6 +29,9 @@ class Point:
     def parse(string):
         x, y = parse_ints(string)
         return Point(x, y)
+
+    def in_rectangle(self, r: Rectangle):
+        return r.ul.x <= self.x <= r.lr.x and r.ul.y <= self.y <= r.lr.y
 
 
 def parse_ints(string):
@@ -56,3 +61,16 @@ class Label:
         self.length, self.height = parse_ints(arr[1])
         relative_placements = [Point.parse(pos) for pos in arr[2].split(' ')]
         self.placements = [self.point - rp for rp in relative_placements]
+
+
+@dataclass
+class Rectangle:
+    ul: Point  # Upper left corner.
+    lr: Point  # Lower right corner.
+
+    def overlaps(self, other: Rectangle):
+        return (self.ul.y <= other.ul.y <= self.lr.y or other.ul.y <= self.ul.y <= other.lr.y) and \
+               (self.ul.x <= other.ul.x <= self.lr.x or other.ul.x <= self.ul.x <= other.lr.x)
+
+    def inside(self, other: Rectangle):
+        return self.ul.in_rectangle(other) and self.lr.in_rectangle(other)

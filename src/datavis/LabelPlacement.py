@@ -1,5 +1,5 @@
-from datavis.Label import Label, Point
-from typing import List, Dict
+from datavis.Label import Label, Point, Rectangle
+from typing import Dict
 from pysat.solvers import Glucose3
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
@@ -8,13 +8,13 @@ from random import randrange
 
 
 class LabelPlacement:
-    canvas_width: int = 200
-    canvas_height: int = 200
+    canvas_width: int = 500
+    canvas_height: int = 500
     labels: List[Label] = None
     _point_by_id: Dict[int, Point] = {}
     _label_by_id: Dict[int, Label] = {}
 
-    def load_labels_from_file(self, filename):
+    def load_labels(self, filename):
         with open(filename) as f:
             lines = f.readlines()
         self.labels = [Label(line) for line in lines]
@@ -70,8 +70,9 @@ class LabelPlacement:
         ax.yaxis.tick_left()  # remove right Y ticks
 
     def draw_labels(self, with_grid=True):
+        frame = 5
         fig, ax = plt.subplots()
-        plt.axis([0, self.canvas_width, 0, self.canvas_height])
+        plt.axis([-frame, self.canvas_width + frame, -frame, self.canvas_height + frame])
         plt.grid(with_grid)
         self._invert_axis(ax)
         ax.set_aspect('equal', adjustable='box')
@@ -85,6 +86,7 @@ class LabelPlacement:
         plt.show()
 
     def calculate_placement(self):
+        canvas = Rectangle(ul=Point(0, 0), lr=Point(self.canvas_height, self.canvas_width))
         clauses = []
         next_id = 1
         for l in self.labels:
@@ -94,6 +96,9 @@ class LabelPlacement:
                 self._point_by_id[p.id] = p
                 self._label_by_id[p.id] = l
             for p in l.placements:
+                rect = Rectangle(ul=p, lr=Point(p.x + l.length, p.y + l.height))
+                if not rect.inside(canvas):
+                    clauses.append([-p.id])
                 for i in range(p.id + 1, next_id):
                     clauses.append([-p.id, -i])  # X_p.id -> !X_i
             clauses.append([p.id for p in l.placements])  # At least one should be chosen
