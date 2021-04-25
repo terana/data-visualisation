@@ -34,9 +34,23 @@ class Point:
         return r.ul.x <= self.x <= r.lr.x and r.ul.y <= self.y <= r.lr.y
 
 
-def parse_ints(string):
-    x, y = string.split(',')
-    return int(x), int(y)
+@dataclass
+class Rectangle:
+    ul: Point  # Upper left corner.
+    lr: Point  # Lower right corner.
+
+    def height(self):
+        return self.lr.y - self.ul.y
+
+    def width(self):
+        return self.lr.x - self.ul.x
+
+    def overlaps(self, other: Rectangle):
+        return (self.ul.y <= other.ul.y <= self.lr.y or other.ul.y <= self.ul.y <= other.lr.y) and \
+               (self.ul.x <= other.ul.x <= self.lr.x or other.ul.x <= self.ul.x <= other.lr.x)
+
+    def inside(self, other: Rectangle):
+        return self.ul.in_rectangle(other) and self.lr.in_rectangle(other)
 
 
 @dataclass()
@@ -62,15 +76,11 @@ class Label:
         relative_placements = [Point.parse(pos) for pos in arr[2].split(' ')]
         self.placements = [self.point - rp for rp in relative_placements]
 
+    def __str__(self):
+        placements = " ".join([str(self.point - p) for p in self.placements])
+        return f"{self.point}\t{self.length},{self.height}\t{placements}"
 
-@dataclass
-class Rectangle:
-    ul: Point  # Upper left corner.
-    lr: Point  # Lower right corner.
 
-    def overlaps(self, other: Rectangle):
-        return (self.ul.y <= other.ul.y <= self.lr.y or other.ul.y <= self.ul.y <= other.lr.y) and \
-               (self.ul.x <= other.ul.x <= self.lr.x or other.ul.x <= self.ul.x <= other.lr.x)
-
-    def inside(self, other: Rectangle):
-        return self.ul.in_rectangle(other) and self.lr.in_rectangle(other)
+def parse_ints(string):
+    x, y = string.split(',')
+    return int(x), int(y)

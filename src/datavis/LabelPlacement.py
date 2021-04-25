@@ -8,39 +8,51 @@ from random import randrange
 
 
 class LabelPlacement:
-    canvas_width: int = 500
-    canvas_height: int = 500
+    """
+    Solves label placement problem.
+    Deals with unlimited number of possible label positions, solving a general Boolean Satisfiability problem.
+    The B-SAT problem is formulated with variables corresponding to all the globally possible labels positions.
+    In case position i of label1 overlaps position j of label2, the Xi -> !Xj clause is added to the problem.
+    Additionally, clauses for restricting choice to exactly one position per label are added.
+    """
+    canvas: Rectangle
     labels: List[Label] = None
     _point_by_id: Dict[int, Point] = {}
     _label_by_id: Dict[int, Label] = {}
 
-    def __init__(self, canvas_width=None, canvas_height=None):
-        if canvas_width:
-            self.canvas_width = canvas_width
-        if canvas_height:
-            self.canvas_height = canvas_height
+    def __init__(self, canvas_width=500, canvas_height=500):
+        self.canvas = Rectangle(Point(0, 0), Point(canvas_width, canvas_height))
 
     def load_labels(self, filename):
-        with open(filename) as f:
+        with open(filename, "r") as f:
             lines = f.readlines()
         self.labels = [Label(line) for line in lines]
 
     def store_labels(self, filename):
-        pass
+        lines = "\n".join([str(l) for l in self.labels])
+        with open(filename, "w") as f:
+            f.write(lines)
 
-    def generate_labels(self, tightness=400):
+    def generate_labels(self, max_label_size=50, min_label_size=10, tightness=200):
+        """
+        Generates a random set of labels with random possible positions, not always possible non-overlapping placement.
+        1. Places rectangles on canvas.
+        2. Generates random number of possible point positions inside each rectangle.
+        3. Chooses some of the position for placing data point.
+        """
         self.labels = []
         placed = []
         padding = 5
         while tightness > 0:
-            w = randrange(50) + 10
-            h = randrange(40) + 10
-            x0 = [padding + randrange(self.canvas_width - w), padding + randrange(self.canvas_height - h)]
-            rect = [x0[0], x0[1], x0[0] + w, x0[1] + h]
+            w = randrange(max_label_size - min_label_size) + min_label_size
+            h = randrange(max_label_size - min_label_size) + min_label_size
+            ul = Point(padding + randrange(self.canvas.width() - w),
+                       padding + randrange(self.canvas.height() - h))
+            rect = Rectangle(ul, ul + Point(w, h))
+
             overlap = False
-            for placedRect in placed:
-                if self._is_overlap(Point(rect[0], rect[1]), Point(rect[2], rect[3]),
-                                    Point(placedRect[0], placedRect[1]), Point(placedRect[2], placedRect[3])):
+            for placed_rect in placed:
+                if rect.overlaps(placed_rect):
                     overlap = True
                     tightness -= 1
                     break
@@ -48,22 +60,19 @@ class LabelPlacement:
             if overlap:
                 continue
             placed.append(rect)
+
             offsets = []
-            k1 = randrange(3) * randrange(2) + 1
-            k2 = randrange(3) * randrange(2) + 1
+            k1 = randrange(4) * randrange(2) + 1
+            k2 = randrange(4) * randrange(2) + 1
             for j in range(k1 + 1):
                 for i in range(k2 + 1):
-                    arr = [i // k2 * w, j // k1 * h]
-                    offsets.append(arr)
+                    if (i / k2 * w).is_integer() and (j / k1 * h).is_integer():
+                        offsets.append(Point(int(i / k2 * w), int(j / k1 * h)))
 
-            if len(offsets) < 1:
-                continue
+            point = ul + offsets[randrange(len(offsets))]
 
-            chosen_index = randrange(len(offsets))
-            pos = Point(offsets[chosen_index][0] + x0[0], offsets[chosen_index][1] + x0[1])
-
-            offsets = [f"{x},{y}" for x, y in offsets]
-            line = f"{pos}\t{w},{h}\t{' '.join(offsets)}"
+            offsets = [f"{p}" for p in offsets]
+            line = f"{point}\t{w},{h}\t{' '.join(offsets)}"
             self.labels.append(Label(line))
 
     @staticmethod
@@ -78,7 +87,7 @@ class LabelPlacement:
     def draw_labels(self, with_grid=True):
         frame = 5
         fig, ax = plt.subplots()
-        plt.axis([-frame, self.canvas_width + frame, -frame, self.canvas_height + frame])
+        plt.axis([-frame, self.canvas.width() + frame, -frame, self.canvas.height() + frame])
         plt.grid(with_grid)
         self._invert_axis(ax)
         ax.set_aspect('equal', adjustable='box')
@@ -86,60 +95,63 @@ class LabelPlacement:
         for l in self.labels:
             plt.plot(l.point.x, l.point.y, 'ko')
             x, y = l.chosen_placement.x, l.chosen_placement.y
-            rect = patches.Rectangle((x, y), l.length, l.height, linewidth=2, edgecolor='r', facecolor='none')
+            rect = patches.Rectangle((x, y), l.length, l.height, linewidth=1, edgecolor='r', facecolor='none')
             ax.add_patch(rect)
         plt.show()
 
     def calculate_placement(self):
-        canvas = Rectangle(ul=Point(0, 0), lr=Point(self.canvas_height, self.canvas_width))
         clauses = []
         next_id = 1
         for l in self.labels:
+            ids = []
             for p in l.placements:
                 p.id = next_id
                 next_id += 1
+                ids.append(p.id)
+
                 self._point_by_id[p.id] = p
                 self._label_by_id[p.id] = l
-            for p in l.placements:
+
                 rect = Rectangle(ul=p, lr=Point(p.x + l.length, p.y + l.height))
-                if not rect.inside(canvas):
-                    clauses.append([-p.id])
-                for i in range(p.id + 1, next_id):
-                    clauses.append([-p.id, -i])  # X_p.id -> !X_i
-            clauses.append([p.id for p in l.placements])  # At least one should be chosen
+                if not rect.inside(self.canvas):
+                    clauses.append([-p.id])  # Impossible placement.
+
+            clauses.append(ids)  # At least one placement should be chosen for a label.
+            for i in ids:
+                # Xi -> !Xj -- Only one placement per label can be chosen.
+                clauses.extend([[-i, -j] for j in range(i + 1, next_id)])
 
         for i, label1 in enumerate(self.labels):
             for label2 in self.labels[i + 1:]:
-                clauses.extend(self._get_clauses(label1, label2))
+                clauses.extend(self._get_overlap_clauses(label1, label2))
 
+        return self._solve_sat_problem(clauses)
+
+    @classmethod
+    def _get_overlap_clauses(cls, label1: Label, label2: Label):
+        clauses = []
+        for p1 in label1.placements:
+            r1 = Rectangle(p1, p1 + Point(label1.length, label1.height))
+            for p2 in label2.placements:
+                r2 = Rectangle(p2, p2 + Point(label2.length, label2.height))
+
+                if r1.overlaps(r2):
+                    clauses.append([-p1.id, -p2.id])
+
+        return clauses
+
+    def _solve_sat_problem(self, clauses):
         g = Glucose3()
         for c in clauses:
             g.add_clause(c)
+
         if not g.solve():
             # No solution.
             return False
 
         model = g.get_model()
         for x in model:
-            id = abs(x)
             if x > 0:
-                self._label_by_id[id].chosen_placement = self._point_by_id[id]
+                self._label_by_id[abs(x)].chosen_placement = self._point_by_id[abs(x)]
 
         return True
-
-    @classmethod
-    def _get_clauses(cls, label1: Label, label2: Label):
-        clauses = []
-        for p1 in label1.placements:
-            for p2 in label2.placements:
-                if cls._is_overlap(p1, p1 + Point(label1.length, label1.height), p2,
-                                   p2 + Point(label2.length, label2.height)):
-                    clauses.append([-p1.id, -p2.id])
-
-        return clauses
-
-    @staticmethod
-    def _is_overlap(upper_left1: Point, lower_right1: Point, upper_left2: Point, lower_right2: Point):
-        return (
-                       upper_left1.y <= upper_left2.y <= lower_right1.y or upper_left2.y <= upper_left1.y <= lower_right2.y) and \
-               (upper_left1.x <= upper_left2.x <= lower_right1.x or upper_left2.x <= upper_left1.x <= lower_right2.x)
