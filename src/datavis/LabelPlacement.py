@@ -14,6 +14,12 @@ class LabelPlacement:
     _point_by_id: Dict[int, Point] = {}
     _label_by_id: Dict[int, Label] = {}
 
+    def __init__(self, canvas_width=None, canvas_height=None):
+        if canvas_width:
+            self.canvas_width = canvas_width
+        if canvas_height:
+            self.canvas_height = canvas_height
+
     def load_labels(self, filename):
         with open(filename) as f:
             lines = f.readlines()
@@ -76,7 +82,6 @@ class LabelPlacement:
         plt.grid(with_grid)
         self._invert_axis(ax)
         ax.set_aspect('equal', adjustable='box')
-        # ax.plot([0, 0], [0, 0])  # Need something to apply patches to.
 
         for l in self.labels:
             plt.plot(l.point.x, l.point.y, 'ko')
@@ -107,18 +112,20 @@ class LabelPlacement:
             for label2 in self.labels[i + 1:]:
                 clauses.extend(self._get_clauses(label1, label2))
 
-        print(clauses)
-
         g = Glucose3()
         for c in clauses:
             g.add_clause(c)
-        print(g.solve())
+        if not g.solve():
+            # No solution.
+            return False
+
         model = g.get_model()
-        print(model)
         for x in model:
             id = abs(x)
             if x > 0:
                 self._label_by_id[id].chosen_placement = self._point_by_id[id]
+
+        return True
 
     @classmethod
     def _get_clauses(cls, label1: Label, label2: Label):
